@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAcces | Gestión Empresa</title>
+    <link rel="stylesheet" href="../../CSS/trabajador.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&display=swap">
+    <style>
+        /* Ajuste extra para la cuadrícula de trabajadores */
+        .grid-trabajadores {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+        .user-info h4 { margin: 0; color: var(--text-color); }
+        .user-info p { margin: 5px 0 0 0; font-size: 0.85rem; opacity: 0.7; }
+    </style>
+</head>
+
+<body>
+
+    <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-badge">WA</div>
+        <button class="close-btn" onclick="toggleMenu()">×</button>
+    </div>
+    <nav class="menu-items">
+        <a href="tareas.html" class="menu-link">
+            <span class="icon">👥</span> Trabajadores
+        </a>
+        
+        <a href="detalle.html" class="menu-link" id="nav-detalle">
+            <span class="icon">🔍</span> Detalle
+        </a>
+
+        <a href="chat_usuarios.html" class="menu-link">
+            <span class="icon">💬</span> Chat privado
+        </a>
+        
+        <div class="menu-link" onclick="toggleDarkMode()" style="cursor:pointer;">
+            <span id="theme-icon">🌙</span> 
+            <span id="theme-text">Modo Oscuro</span>
+        </div>
+
+        <a href="../../INDEX.HTML" class="menu-link logout">
+            <span class="icon">🚪</span> Salir
+        </a>
+    </nav>
+</aside>
+
+    <main class="content">
+        <header class="top-bar">
+            <button class="menu-trigger" onclick="toggleMenu(event)">☰</button>
+            <h2>Panel de Empresa</h2>
+        </header>
+
+        <section id="sec-inicio">
+            <div style="margin-bottom: 25px;">
+                <h3 style="margin: 0;">Seleccionar Trabajador</h3>
+                <p style="opacity: 0.6; font-size: 0.9rem;">Haz clic en "Gestionar" para asignar tareas o bloquear permisos.</p>
+            </div>
+
+            <div id="lista-usuarios" class="grid-trabajadores">
+                <p id="loading-msg">Cargando trabajadores...</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- 1. CONFIGURACIÓN DE RUTAS ---
+        // Subimos dos niveles (../../) para llegar a la carpeta PHP desde HTML/empresa/
+        const PHP_URL = '../../PHP/obtener_trabajadores.php';
+
+        async function cargarTrabajadores() {
+            const container = document.getElementById('lista-usuarios');
+            
+            try {
+                const response = await fetch(PHP_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const trabajadores = await response.json();
+
+                if (trabajadores.error) {
+                    container.innerHTML = `<p style="color:red;">Error de BD: ${trabajadores.error}</p>`;
+                    return;
+                }
+
+                if (trabajadores.length === 0) {
+                    container.innerHTML = `<p style="color:gray;">No se encontraron trabajadores registrados.</p>`;
+                    return;
+                }
+
+                // Generar las tarjetas con tu estilo .task-card
+                container.innerHTML = trabajadores.map(user => `
+                    <div class="task-card" style="border-left: 5px solid #007bff; display: flex; justify-content: space-between; align-items: center; padding: 20px;">
+                        <div class="user-info">
+                            <h4>${user.nombre}</h4>
+                            <p>ID de usuario: #${user.id}</p>
+                        </div>
+                        <button class="btn-primary" onclick="gestionar(${user.id})" style="padding: 10px 15px; font-size: 0.8rem;">
+                            Gestionar
+                        </button>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error("Error completo:", error);
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 20px;">
+                        <p style="color:var(--text-color);">⚠️ No se pudo conectar con el servidor.</p>
+                        <small style="color:gray;">Ruta intentada: ${PHP_URL}</small>
+                    </div>`;
+            }
+        }
+
+        function gestionar(id) {
+            // Redirige al detalle dentro de la misma carpeta empresa
+            window.location.href = `tareas_usuarios.html?id=${id}`;
+        }
+
+        // --- 2. FUNCIONES DE UI (Copiadas de tu trabajador.js para que funcionen igual) ---
+        function toggleMenu(event) {
+            if (event) event.stopPropagation(); 
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.toggle('active');
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        // Al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            // Aplicar tema guardado
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+            
+            // Cargar datos
+            cargarTrabajadores();
+
+            // Cerrar menú al hacer clic fuera (tu lógica original)
+            document.addEventListener('click', (event) => {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && sidebar.classList.contains('active')) {
+                    if (!sidebar.contains(event.target) && !event.target.classList.contains('menu-trigger')) {
+                        sidebar.classList.remove('active');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
