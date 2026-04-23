@@ -20,7 +20,10 @@
 
             <form id="registroForm" class="login-form">
                 <div class="input-group">
-                    <input type="text" id="regNombre" placeholder="Nombre de usuario" required>
+                    <input type="text" id="regNombre" placeholder="Nombre de usuario (Login)" required>
+                    
+                    <input type="text" id="regNombreCompleto" placeholder="Nombre completo" required>
+                    
                     <input type="password" id="regPass" placeholder="Contraseña nueva" required>
 
                     <select id="regRol" class="select-field">
@@ -28,6 +31,8 @@
                         <option value="tutor">Rol: Tutor</option>
                         <option value="admin">Rol: Administrador</option>
                     </select>
+
+                    <input type="text" id="regEmpresa" placeholder="Empresa" required>
                 </div>
 
                 <button type="submit" class="btn-primary">Guardar Usuario</button>

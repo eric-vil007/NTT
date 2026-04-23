@@ -17,18 +17,24 @@ if ($conn->connect_error) {
 // Leer JSON
 $input = json_decode(file_get_contents('php://input'), true);
 
-if (!empty($input['nombre']) && !empty($input['password'])) {
-    $u = $conn->real_escape_string($input['nombre']);
-    $p = $conn->real_escape_string($input['password']);
-    $r = $conn->real_escape_string($input['rol']);
+// Validación básica de campos obligatorios
+if (!empty($input['nombre']) && !empty($input['password']) && !empty($input['nombre_completo'])) {
+    
+    // Escapar datos para evitar Inyección SQL básica
+    $u  = $conn->real_escape_string($input['nombre']);
+    $nc = $conn->real_escape_string($input['nombre_completo']);
+    $p  = $conn->real_escape_string($input['password']);
+    $r  = $conn->real_escape_string($input['rol']);
+    $e  = $conn->real_escape_string($input['empresa']);
 
-    // INSERT en tu tabla usuarios
-    $sql = "INSERT INTO usuarios (nombre, password, rol) VALUES ('$u', '$p', '$r')";
+    // INSERT con las 5 columnas correspondientes
+    $sql = "INSERT INTO usuarios (nombre, nombre_completo, password, rol, empresa) 
+            VALUES ('$u', '$nc', '$p', '$r', '$e')";
 
     if ($conn->query($sql)) {
         echo json_encode(["success" => true]);
     } else {
-        echo json_encode(["success" => false, "message" => $conn->error]);
+        echo json_encode(["success" => false, "message" => "Error SQL: " . $conn->error]);
     }
 } else {
     echo json_encode(["success" => false, "message" => "Datos incompletos"]);

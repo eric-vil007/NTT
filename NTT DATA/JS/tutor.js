@@ -14,7 +14,7 @@ function formatearHora(fechaEnvio) {
     } catch (e) { return '--:--'; }
 }
 
-// --- 3. GESTIÓN DE TRABAJADORES ---
+// --- 3. GESTIÓN DE TRABAJADORES (MODIFICADO) ---
 async function cargarListaContactos() {
     const container = document.getElementById('listaContactos');
     if (!container) return;
@@ -33,28 +33,41 @@ async function cargarListaContactos() {
         container.innerHTML = workers.map(w => {
             const nombreEscapado = w.nombre.replace(/'/g, "\\'");
             
-            // Si es inicio.html -> Redirige a Detalle
-            // Si es chat_usuarios.html -> Redirige al Chat
+            // Botón dinámico
             const botonHtml = esPaginaInicio
                 ? `<button class="btn-consultar" onclick="irADetalleTrabajador(${w.id})">📊 Ver Detalle</button>`
                 : `<button class="btn-primary" onclick="irAlChat(event, ${w.id}, '${nombreEscapado}')">💬 Chatear</button>`;
 
+            // Estructura de tarjeta con Nombre Completo y Empresa
             return `
                 <div class="worker-card">
                     <div class="worker-info">
                         <div class="status-badge">Disponible</div>
-                        <h4>${w.nombre}</h4>
-                        <small>ID: ${w.id}</small>
+                        <small style="color: #666; font-size: 0.75rem;">${w.nombre}</small>
+                        
+                        <h4 style="margin: 5px 0; color: #2c3e50; font-size: 1.1rem;">
+                            ${w.nombre_completo || 'Sin nombre completo'}
+                        </h4>
+                        
+                        <p style="margin: 8px 0; font-size: 0.85rem; color: #007bff; font-weight: 600;">
+                            🏢 ${w.empresa || 'Empresa no asignada'}
+                        </p>
+                        
+                        <small style="display: block; color: #999; margin-top: 5px;">ID: ${w.id}</small>
                     </div>
-                    <div class="worker-actions">${botonHtml}</div>
+                    <div class="worker-actions" style="margin-top: 15px;">
+                        ${botonHtml}
+                    </div>
                 </div>`;
         }).join('');
-    } catch (e) { console.error("Error cargando contactos:", e); }
+    } catch (e) { 
+        console.error("Error cargando contactos:", e); 
+        container.innerHTML = '<p class="error-msg">Error al cargar datos del servidor.</p>';
+    }
 }
 
 // --- 4. REDIRECCIÓN A DETALLE ---
 function irADetalleTrabajador(id) {
-    // Es vital que el nombre de la llave coincida: 'trabajador_detalle_id'
     localStorage.setItem('trabajador_detalle_id', id);
     window.location.assign('detalle_trabajador.html');
 }
@@ -83,31 +96,19 @@ async function cargarMensajes() {
             return `
                 <div class="message-container ${esMio ? 'tutor-msg' : 'worker-msg'}" 
                      style="display: flex; justify-content: ${esMio ? 'flex-end' : 'flex-start'}; margin-bottom: 12px; padding: 0 10px;">
-                    
                     <div class="msg-bubble" style="
                         max-width: 75%; 
                         padding: 10px 15px; 
                         border-radius: 15px;
                         background: ${esMio ? '#007bff' : '#e9e9eb'};
                         color: ${esMio ? '#fff' : '#000'};
-                        
-                        /* ALINEACIÓN: Siempre a la izquierda dentro del globo */
                         text-align: left; 
-                        
-                        /* AJUSTE DE TEXTO LARGO */
                         word-break: break-word; 
-                        overflow-wrap: anywhere; 
-                        white-space: normal;
-                        min-width: 60px;
                     ">
-                        <p style="margin: 0; line-height: 1.4; display: block;">${m.mensaje}</p>
-                        <span class="msg-time" style="
-                            display: block; 
-                            font-size: 0.7rem; 
-                            margin-top: 5px; 
-                            opacity: 0.7; 
-                            text-align: right; /* La hora sí queda bien a la derecha */
-                        ">${formatearHora(m.fecha_envio)}</span>
+                        <p style="margin: 0;">${m.mensaje}</p>
+                        <span style="display: block; font-size: 0.7rem; margin-top: 5px; opacity: 0.7; text-align: right;">
+                            ${formatearHora(m.fecha_envio)}
+                        </span>
                     </div>
                 </div>`;
         }).join('');
@@ -162,13 +163,11 @@ function actualizarInterfazTema(isDark) {
 
 // --- 7. INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Aplicar tema
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
         actualizarInterfazTema(true);
     }
 
-    // Cerrar menú al clicar fuera
     document.addEventListener('click', (event) => {
         const sidebar = document.getElementById('sidebar');
         if (sidebar && sidebar.classList.contains('active')) {
@@ -178,22 +177,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Cargar lista si existe el contenedor
     if (document.getElementById('listaContactos')) cargarListaContactos();
 
-    // Inicializar chat si existe el formulario
     const chatForm = document.getElementById('chatForm');
     if (chatForm) {
         const receptorNombre = localStorage.getItem('receptor_nombre');
-        const header = document.querySelector('.top-bar h2') || document.getElementById('chatHeader');
+        const header = document.querySelector('.top-bar h2');
         if (header && receptorNombre) header.innerText = `Chat con ${receptorNombre}`;
         
         chatForm.addEventListener('submit', enviarMensaje);
         cargarMensajes();
-        setInterval(cargarMensajes, 3000); // Polling cada 3 segundos
+        setInterval(cargarMensajes, 3000);
     }
 
-    // Exportar funciones globales
     window.toggleMenu = toggleMenu;
     window.toggleTheme = toggleTheme;
     window.irADetalleTrabajador = irADetalleTrabajador;

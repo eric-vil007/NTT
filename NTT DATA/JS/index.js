@@ -1,5 +1,5 @@
-const IP_SERVIDOR = "192.168.2.30";
-const NOMBRE_PROYECTO = "NTT DATA";
+const IP_SERVIDOR = "52.4.65.168";
+const NOMBRE_PROYECTO = "dashboard";
 let modoRegistro = false; 
 
 const urlBase = `http://${IP_SERVIDOR}/${encodeURIComponent(NOMBRE_PROYECTO)}`;

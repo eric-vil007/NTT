@@ -5,7 +5,6 @@ const PERMISOS_URL = '../../PHP/permisos_logic.php';
 
 // Estado global
 const urlParams = new URLSearchParams(window.location.search);
-// Prioridad: 1. URL (?id=), 2. LocalStorage
 const trabajadorId = urlParams.get('id') || localStorage.getItem('trabajador_detalle_id'); 
 
 let permisoActual = 1;
@@ -20,19 +19,25 @@ async function cargarListaTrabajadores() {
         const workers = await res.json();
 
         if (!workers || workers.length === 0) {
-            container.innerHTML = '<p class="empty-msg">No hay trabajadores asignados.</p>';
+            container.innerHTML = '<p class="empty-msg">No hay trabajadores registrados.</p>';
             return;
         }
 
         container.innerHTML = workers.map(w => `
             <div class="worker-card">
                 <div class="worker-info">
-                    <div class="status-badge">Disponible</div>
-                    <h4>${w.nombre}</h4>
-                    <small>ID: ${w.id}</small>
+                    <div class="status-badge">Activo</div>
+                    <small style="color: #666;">${w.nombre}</small>
+                    <h4 style="margin: 5px 0;">${w.nombre_completo || 'Sin nombre'}</h4>
+                    <p style="color: #007bff; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px;">
+                        🏢 ${w.empresa || 'General'}
+                    </p>
+                    <small style="opacity: 0.6;">ID: ${w.id}</small>
                 </div>
-                <div class="worker-actions">
-                    <button class="btn-consultar" onclick="seleccionarTrabajador(${w.id})">📊 Ver Gestión</button>
+                <div class="worker-actions" style="margin-top: 10px;">
+                    <button class="btn-consultar" onclick="seleccionarTrabajador(${w.id})" style="width: 100%;">
+                        📊 Gestionar
+                    </button>
                 </div>
             </div>`).join('');
     } catch (e) { 
@@ -44,19 +49,22 @@ async function cargarListaTrabajadores() {
 // Función para seleccionar y navegar
 window.seleccionarTrabajador = function(id) {
     localStorage.setItem('trabajador_detalle_id', id);
-    // Forzamos que la URL tenga el ID para evitar conflictos de caché
-    window.location.href = `detalle_trabajador.html?id=${id}`; 
+    window.location.href = `detalle.html?id=${id}`; 
 };
 
-// --- 3. LÓGICA DE PERMISOS (Bloqueo) ---
+// --- 3. LÓGICA DE PERMISOS ---
 async function cargarEstadoPermiso() {
     if (!trabajadorId) return;
     try {
         const res = await fetch(`${PERMISOS_URL}?id=${trabajadorId}`);
         const user = await res.json();
         
+        // Mostrar la vista de tareas si hay un ID
+        document.getElementById('sec-trabajadores').style.display = 'none';
+        document.getElementById('vistaTareas').style.display = 'block';
+
         const titleElem = document.getElementById('userNameTitle');
-        if (titleElem && user.nombre) titleElem.innerText = `Gestión: ${user.nombre}`;
+        if (titleElem) titleElem.innerText = `Gestión: ${user.nombre_completo || user.nombre}`;
         
         permisoActual = user.permiso_crear;
         actualizarInterfazPermiso();
@@ -66,7 +74,7 @@ async function cargarEstadoPermiso() {
 async function toggleUserPermission() {
     if(!trabajadorId) return;
     const nuevoEstado = permisoActual == 1 ? 0 : 1;
-    if(!confirm("¿Cambiar permisos de creación para este usuario?")) return;
+    if(!confirm("¿Cambiar permisos para este usuario?")) return;
 
     try {
         const res = await fetch(PERMISOS_URL, {
@@ -85,11 +93,12 @@ async function toggleUserPermission() {
 function actualizarInterfazPermiso() {
     const btn = document.getElementById('btnLock');
     if (!btn) return;
-    btn.innerHTML = permisoActual == 1 ? `<span>🔒</span> Bloquear` : `<span>🔓</span> Habilitar`;
+    btn.innerHTML = permisoActual == 1 ? `🔒 Bloquear Creación` : `🔓 Habilitar Creación`;
+    btn.className = permisoActual == 1 ? "btn-danger" : "btn-success"; // Clases de tu CSS
     btn.style.background = permisoActual == 1 ? "#e74c3c" : "#2ecc71";
 }
 
-// --- 4. LÓGICA DE TAREAS (Kanban) ---
+// --- 4. LÓGICA DE TAREAS ---
 async function cargarTareas() {
     const container = document.getElementById('activeTasksContainer');
     if (!container || !trabajadorId) return;
@@ -99,26 +108,25 @@ async function cargarTareas() {
         const tareas = await res.json();
         
         if (!Array.isArray(tareas) || tareas.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Sin tareas pendientes.</p>`;
+            container.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Sin tareas asignadas.</p>`;
             return;
         }
 
-        container.innerHTML = tareas.map(t => {
-            const enCurso = t.status === 'En curso';
-            return `
-            <div class="task-card" style="border-left: 5px solid ${enCurso ? '#2ecc71' : '#f1c40f'}; margin-bottom:10px; padding:10px; background:var(--bg-card, #fff); border-radius:8px;">
-                <h4 style="margin:0;">${t.name}</h4>
-                <p style="font-size:0.9rem; color:gray;">${t.descripcion || ''}</p>
-                <button onclick="eliminarTarea(${t.id})" class="btn-delete" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">
-                    🗑️ Borrar
+        container.innerHTML = tareas.map(t => `
+            <div class="task-card" style="border-left: 5px solid #007bff; margin-bottom:10px; padding:15px; background:#fff; border-radius:8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4 style="margin:0;">${t.name}</h4>
+                    <span class="badge" style="font-size: 0.7rem; background: #eee; padding: 2px 6px; border-radius: 4px;">${t.status}</span>
+                </div>
+                <button onclick="eliminarTarea(${t.id})" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size: 1.2rem;">
+                    🗑️
                 </button>
-            </div>`;
-        }).join('');
+            </div>`).join('');
     } catch (e) { console.error("Error cargando tareas:", e); }
 }
 
 async function eliminarTarea(id) {
-    if(!confirm("¿Eliminar esta tarea permanentemente?")) return;
+    if(!confirm("¿Eliminar esta tarea?")) return;
     try {
         const res = await fetch(TAREAS_URL, {
             method: 'DELETE',
@@ -153,25 +161,20 @@ function actualizarInterfazTema(isDark) {
 
 // --- 6. INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Aplicar tema guardado
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
         actualizarInterfazTema(true);
     }
 
-    // Lógica de carga según la página
-    // Si estamos en la página de detalle (id en URL o local)
-    if (trabajadorId && (window.location.pathname.includes('detalle') || urlParams.has('id'))) {
+    // Si hay ID en la URL, mostramos la vista de gestión individual
+    if (trabajadorId && urlParams.has('id')) {
         cargarEstadoPermiso();
         cargarTareas();
-    } 
-    
-    // Si el contenedor de lista existe, cargamos siempre los trabajadores
-    if (document.getElementById('listaContactos')) {
+    } else {
+        // Si no, cargamos la lista de personal
         cargarListaTrabajadores();
     }
 
-    // Exportar funciones a window para que funcionen los onclick del HTML
     window.toggleMenu = toggleMenu;
     window.toggleTheme = toggleTheme;
     window.seleccionarTrabajador = seleccionarTrabajador;
